@@ -7,7 +7,7 @@ import logging
 from datetime import timedelta
 
 # Configure logging
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
@@ -18,7 +18,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.environ['DATABASE_URL']
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Session configuration
-app.config['SESSION_COOKIE_SECURE'] = False  # Set to False for development
+app.config['SESSION_COOKIE_SECURE'] = True  # Enable in production
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=60)
 
