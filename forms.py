@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, TextAreaField, SelectField, FloatField, DateTimeField
-from wtforms.validators import DataRequired, Email, Length, ValidationError
+from wtforms.validators import DataRequired, Email, Length, ValidationError, NumberRange
 from models import User
 
 class LoginForm(FlaskForm):
@@ -32,6 +32,7 @@ class ServiceForm(FlaskForm):
 
 class BookingForm(FlaskForm):
     booking_date = DateTimeField('Booking Date', format='%Y-%m-%d %H:%M', validators=[DataRequired()])
+    hours = FloatField('Number of Hours', validators=[DataRequired(), NumberRange(min=1, max=24)], default=1.0)
     message = TextAreaField('Message to Provider')
 
 class MessageForm(FlaskForm):

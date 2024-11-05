@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">My Bookings</h2>
+    
+    {% if not bookings %}
+    <div class="alert alert-info">
+        {% if current_user.role == 'customer' %}
+            You haven't made any bookings yet.
+        {% else %}
+            You don't have any service bookings yet.
+        {% endif %}
+    </div>
+    {% endif %}
+    
+    <div class="row">
+        {% for booking in bookings %}
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">{{ booking.service.title }}</h5>
+                    <div class="mb-3">
+                        <span class="badge bg-{{ 'success' if booking.payment_status == 'paid' else 'warning' }}">
+                            {{ booking.status.title() }}
+                        </span>
+                        <span class="badge bg-{{ 'success' if booking.payment_status == 'paid' else 'warning' }}">
+                            Payment: {{ booking.payment_status.title() }}
+                        </span>
+                    </div>
+                    <p><strong>Date:</strong> {{ booking.booking_date.strftime('%Y-%m-%d %H:%M') }}</p>
+                    <p><strong>Hours:</strong> {{ booking.hours }}</p>
+                    <p><strong>Total Amount:</strong> ${{ "%.2f"|format(booking.total_amount) }}</p>
+                    
+                    {% if current_user.role == 'customer' %}
+                    <p><strong>Provider:</strong> {{ booking.provider.username }}</p>
+                    {% else %}
+                    <p><strong>Customer:</strong> {{ booking.customer.username }}</p>
+                    {% endif %}
+                    
+                    <div class="d-grid gap-2">
+                        {% if booking.payment_status != 'paid' and current_user.role == 'customer' %}
+                        <a href="{{ url_for('payment', booking_id=booking.id) }}" class="btn btn-primary">Complete Payment</a>
+                        {% endif %}
+                        
+                        <a href="{{ url_for('messages', user_id=booking.provider_id if current_user.role == 'customer' else booking.customer_id) }}" 
+                           class="btn btn-outline-primary">Message {{ 'Provider' if current_user.role == 'customer' else 'Customer' }}</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

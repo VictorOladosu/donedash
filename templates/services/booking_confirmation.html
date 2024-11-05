@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h2 class="card-title mb-4">
+                        {% if booking.payment_status == 'paid' %}
+                            Booking Confirmed!
+                        {% else %}
+                            Payment Processing
+                        {% endif %}
+                    </h2>
+                    
+                    {% if booking.payment_status == 'paid' %}
+                        <div class="text-success mb-4">
+                            <i class="feather-check-circle" style="font-size: 48px;"></i>
+                        </div>
+                        <p class="lead">Your booking has been confirmed and payment has been processed successfully.</p>
+                    {% else %}
+                        <div class="text-warning mb-4">
+                            <i class="feather-clock" style="font-size: 48px;"></i>
+                        </div>
+                        <p class="lead">Your payment is being processed. Please wait...</p>
+                    {% endif %}
+                    
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <h5>Booking Details</h5>
+                            <p><strong>Service:</strong> {{ booking.service.title }}</p>
+                            <p><strong>Date:</strong> {{ booking.booking_date.strftime('%Y-%m-%d %H:%M') }}</p>
+                            <p><strong>Hours:</strong> {{ booking.hours }}</p>
+                            <p><strong>Total Amount:</strong> ${{ "%.2f"|format(booking.total_amount) }}</p>
+                            <p><strong>Status:</strong> <span class="badge bg-{{ 'success' if booking.payment_status == 'paid' else 'warning' }}">
+                                {{ booking.payment_status }}
+                            </span></p>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('messages', user_id=booking.provider_id) }}" class="btn btn-primary">Message Provider</a>
+                        <a href="{{ url_for('services') }}" class="btn btn-outline-primary">Browse More Services</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,9 +1,10 @@
-from flask import render_template, redirect, url_for, flash, request
+from flask import render_template, redirect, url_for, flash, request, jsonify
 from flask_login import login_user, logout_user, login_required, current_user
 from main import app, db
 from models import User, Service, Booking, Message, Review
 from forms import LoginForm, RegistrationForm, ServiceForm, BookingForm, MessageForm, ReviewForm
 from datetime import datetime
+import os
 
 @app.route('/')
 def index():
@@ -82,19 +83,54 @@ def create_booking(service_id):
     if current_user.role != 'customer':
         flash('Only customers can make bookings', 'danger')
         return redirect(url_for('services'))
+    
     form = BookingForm()
     if form.validate_on_submit():
         service = Service.query.get_or_404(service_id)
+        hours = form.hours.data if hasattr(form, 'hours') else 1.0
+        total_amount = service.rate * hours
+        
         booking = Booking(
             service_id=service_id,
             customer_id=current_user.id,
             provider_id=service.provider_id,
-            booking_date=form.booking_date.data
+            booking_date=form.booking_date.data,
+            hours=hours,
+            total_amount=total_amount
         )
         db.session.add(booking)
         db.session.commit()
-        flash('Booking request sent!', 'success')
+        
+        return redirect(url_for('payment', booking_id=booking.id))
     return redirect(url_for('service_detail', id=service_id))
+
+@app.route('/payment/<int:booking_id>')
+@login_required
+def payment(booking_id):
+    booking = Booking.query.get_or_404(booking_id)
+    if booking.customer_id != current_user.id:
+        flash('Unauthorized access', 'danger')
+        return redirect(url_for('index'))
+    
+    if booking.payment_status == 'paid':
+        flash('This booking has already been paid for', 'info')
+        return redirect(url_for('booking_confirmation', booking_id=booking_id))
+    
+    return render_template(
+        'services/payment.html',
+        booking=booking,
+        stripe_publishable_key=os.environ['STRIPE_PUBLISHABLE_KEY']
+    )
+
+@app.route('/booking-confirmation/<int:booking_id>')
+@login_required
+def booking_confirmation(booking_id):
+    booking = Booking.query.get_or_404(booking_id)
+    if booking.customer_id != current_user.id:
+        flash('Unauthorized access', 'danger')
+        return redirect(url_for('index'))
+    
+    return render_template('services/booking_confirmation.html', booking=booking)
 
 @app.route('/messages')
 @login_required
@@ -115,6 +151,7 @@ def chat(user_id):
         db.session.add(message)
         db.session.commit()
         return redirect(url_for('chat', user_id=user_id))
+    
     messages = Message.query.filter(
         ((Message.sender_id == current_user.id) & (Message.receiver_id == user_id)) |
         ((Message.sender_id == user_id) & (Message.receiver_id == current_user.id))
@@ -126,3 +163,12 @@ def chat(user_id):
 def logout():
     logout_user()
     return redirect(url_for('index'))
+
+@app.route('/bookings')
+@login_required
+def bookings():
+    if current_user.role == 'customer':
+        bookings = Booking.query.filter_by(customer_id=current_user.id).all()
+    else:
+        bookings = Booking.query.filter_by(provider_id=current_user.id).all()
+    return render_template('bookings.html', bookings=bookings)

@@ -37,7 +37,11 @@ class Booking(db.Model):
     customer_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     provider_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     booking_date = db.Column(db.DateTime, nullable=False)
-    status = db.Column(db.String(20), default='pending')  # pending, confirmed, completed
+    status = db.Column(db.String(20), default='pending')  # pending, confirmed, completed, cancelled
+    hours = db.Column(db.Float, nullable=False, default=1.0)  # Number of hours booked
+    total_amount = db.Column(db.Float, nullable=False)  # Total amount to be paid
+    payment_status = db.Column(db.String(20), default='unpaid')  # unpaid, paid
+    payment_intent_id = db.Column(db.String(100))  # Stripe payment intent ID
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 class Message(db.Model):
