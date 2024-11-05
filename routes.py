@@ -20,8 +20,12 @@ def login():
         user = User.query.filter_by(email=form.email.data).first()
         if user and user.check_password(form.password.data):
             login_user(user)
+            flash('Login successful!', 'success')
             return redirect(url_for('index'))
-        flash('Invalid email or password', 'danger')
+        flash('Invalid email or password. Please try again.', 'danger')
+    for field, errors in form.errors.items():
+        for error in errors:
+            flash(f'{field.title()}: {error}', 'danger')
     return render_template('auth/login.html', form=form)
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -30,12 +34,32 @@ def register():
         return redirect(url_for('index'))
     form = RegistrationForm()
     if form.validate_on_submit():
-        user = User(username=form.username.data, email=form.email.data, role=form.role.data)
-        user.set_password(form.password.data)
-        db.session.add(user)
-        db.session.commit()
-        flash('Registration successful!', 'success')
-        return redirect(url_for('login'))
+        try:
+            if User.query.filter_by(username=form.username.data).first():
+                flash('Username already exists. Please choose another.', 'danger')
+                return render_template('auth/register.html', form=form)
+            
+            user = User(
+                username=form.username.data,
+                email=form.email.data,
+                role=form.role.data
+            )
+            user.set_password(form.password.data)
+            
+            db.session.add(user)
+            db.session.commit()
+            
+            flash('Registration successful! Please login.', 'success')
+            return redirect(url_for('login'))
+        except Exception as e:
+            db.session.rollback()
+            flash('An error occurred during registration. Please try again.', 'danger')
+            app.logger.error(f'Registration error: {str(e)}')
+    
+    for field, errors in form.errors.items():
+        for error in errors:
+            flash(f'{field.title()}: {error}', 'danger')
+    
     return render_template('auth/register.html', form=form)
 
 @app.route('/services')
@@ -162,6 +186,7 @@ def chat(user_id):
 @login_required
 def logout():
     logout_user()
+    flash('You have been logged out successfully.', 'success')
     return redirect(url_for('index'))
 
 @app.route('/bookings')

@@ -6,15 +6,25 @@
         <div class="card">
             <div class="card-body">
                 <h2 class="card-title text-center mb-4">Login</h2>
-                <form method="POST" action="">
+                <form method="POST" action="{{ url_for('login') }}">
                     {{ form.hidden_tag() }}
                     <div class="mb-3">
                         {{ form.email.label(class="form-label") }}
-                        {{ form.email(class="form-control") }}
+                        {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else "")) }}
+                        {% if form.email.errors %}
+                            {% for error in form.email.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                        {% endif %}
                     </div>
                     <div class="mb-3">
                         {{ form.password.label(class="form-label") }}
-                        {{ form.password(class="form-control") }}
+                        {{ form.password(class="form-control" + (" is-invalid" if form.password.errors else "")) }}
+                        {% if form.password.errors %}
+                            {% for error in form.password.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                        {% endif %}
                     </div>
                     <div class="d-grid">
                         <button type="submit" class="btn btn-primary">Login</button>
