@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="jumbotron text-center mb-4">
+    <h1 class="display-4">Welcome to TaskRabbit Clone</h1>
+    <p class="lead">Find trusted help for your tasks or offer your services to others.</p>
+    {% if not current_user.is_authenticated %}
+        <div class="mt-4">
+            <a href="{{ url_for('register') }}" class="btn btn-primary me-2">Sign Up</a>
+            <a href="{{ url_for('login') }}" class="btn btn-outline-primary">Login</a>
+        </div>
+    {% endif %}
+</div>
+
+<h2 class="mb-4">Featured Services</h2>
+<div class="row row-cols-1 row-cols-md-3 g-4">
+    {% for service in services %}
+    <div class="col">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">{{ service.title }}</h5>
+                <h6 class="card-subtitle mb-2 text-muted">${{ "%.2f"|format(service.rate) }}/hr</h6>
+                <p class="card-text">{{ service.description[:150] }}...</p>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="badge bg-primary">{{ service.category }}</span>
+                    <a href="{{ url_for('service_detail', id=service.id) }}" class="btn btn-sm btn-outline-primary">View Details</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

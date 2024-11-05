@@ -1,0 +1,13 @@
+/* Custom styles can be added here if needed */
+body {
+    min-height: 100vh;
+}
+
+.service-card {
+    height: 100%;
+}
+
+.chat-container {
+    max-height: 400px;
+    overflow-y: auto;
+}

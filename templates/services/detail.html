@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h1 class="card-title">{{ service.title }}</h1>
+                    <span class="badge bg-primary mb-3">{{ service.category }}</span>
+                    <h5 class="text-muted">${{ "%.2f"|format(service.rate) }}/hr</h5>
+                    <p class="card-text">{{ service.description }}</p>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h3>Reviews</h3>
+                    {% if reviews %}
+                        {% for review in reviews %}
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <span class="text-warning">
+                                        {% for _ in range(review.rating) %}★{% endfor %}
+                                        {% for _ in range(5 - review.rating) %}☆{% endfor %}
+                                    </span>
+                                </div>
+                                <small class="text-muted">{{ review.created_at.strftime('%Y-%m-%d') }}</small>
+                            </div>
+                            <p class="mb-0">{{ review.comment }}</p>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p>No reviews yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            {% if current_user.is_authenticated and current_user.role == 'customer' %}
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h3>Book Service</h3>
+                    <form method="POST" action="{{ url_for('create_booking', service_id=service.id) }}">
+                        {{ booking_form.hidden_tag() }}
+                        <div class="mb-3">
+                            {{ booking_form.booking_date.label(class="form-label") }}
+                            {{ booking_form.booking_date(class="form-control") }}
+                        </div>
+                        <div class="mb-3">
+                            {{ booking_form.message.label(class="form-label") }}
+                            {{ booking_form.message(class="form-control") }}
+                        </div>
+                        <button type="submit" class="btn btn-primary">Book Now</button>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
