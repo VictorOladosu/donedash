@@ -1,7 +1,8 @@
 from flask import render_template, redirect, url_for, flash, request, jsonify, session
 from flask_login import login_user, logout_user, login_required, current_user
 from flask_wtf.csrf import CSRFError
-from main import app, db, logger
+from extensions import db
+from main import app, logger
 from models import User, Service, Booking, Message, Review
 from forms import LoginForm, RegistrationForm, ServiceForm, BookingForm, MessageForm, ReviewForm
 from datetime import datetime
@@ -33,17 +34,12 @@ def login():
             
             logger.warning(f"Failed login attempt for email: {form.email.data}")
             flash('Invalid email or password. Please try again.', 'danger')
-        except BadRequest as e:
-            logger.error(f"CSRF validation failed during login: {str(e)}")
-            flash('Form validation failed. Please try again.', 'danger')
-            return redirect(url_for('login'))
         except Exception as e:
             logger.error(f"Login error: {str(e)}")
             flash('An error occurred during login. Please try again.', 'danger')
     
     if form.errors:
         logger.debug(f"Login form validation errors: {form.errors}")
-        session['_form_errors'] = form.errors
         for field, errors in form.errors.items():
             for error in errors:
                 flash(f'{field.title()}: {error}', 'danger')
@@ -56,22 +52,13 @@ def register():
         return redirect(url_for('index'))
     
     form = RegistrationForm()
-    logger.debug(f"Processing registration request. Method: {request.method}")
-    
-    if request.method == 'POST':
-        logger.debug(f"Form data received: {request.form}")
-        logger.debug(f"CSRF token present in form: {form.csrf_token.current_token is not None}")
-        logger.debug(f"CSRF token present in session: {'csrf_token' in session}")
-    
     if form.validate_on_submit():
         try:
             if User.query.filter_by(username=form.username.data).first():
-                logger.warning(f"Registration attempt with existing username: {form.username.data}")
                 flash('Username already exists. Please choose another.', 'danger')
                 return render_template('auth/register.html', form=form)
             
             if User.query.filter_by(email=form.email.data).first():
-                logger.warning(f"Registration attempt with existing email: {form.email.data}")
                 flash('Email already registered. Please use a different email.', 'danger')
                 return render_template('auth/register.html', form=form)
             
@@ -85,34 +72,13 @@ def register():
             db.session.add(user)
             db.session.commit()
             
-            logger.info(f"New user registered successfully: {user.email}")
             flash('Registration successful! Please login.', 'success')
             return redirect(url_for('login'))
             
-        except CSRFError as e:
-            db.session.rollback()
-            logger.error(f"CSRF validation failed during registration: {str(e)}")
-            flash('Form validation failed. Please try again.', 'danger')
-            return render_template('auth/register.html', form=form, csrf_error=str(e))
-            
-        except IntegrityError as e:
-            db.session.rollback()
-            logger.error(f"Database integrity error during registration: {str(e)}")
-            flash('An error occurred during registration. Please try again.', 'danger')
-            return render_template('auth/register.html', form=form)
-            
         except Exception as e:
             db.session.rollback()
-            logger.error(f"Unexpected error during registration: {str(e)}")
-            flash('An unexpected error occurred. Please try again.', 'danger')
-            return render_template('auth/register.html', form=form)
-    
-    if form.errors:
-        logger.debug(f"Registration form validation errors: {form.errors}")
-        session['_form_errors'] = form.errors
-        for field, errors in form.errors.items():
-            for error in errors:
-                flash(f'{field.title()}: {error}', 'danger')
+            logger.error(f"Registration error: {str(e)}")
+            flash('An error occurred during registration. Please try again.', 'danger')
     
     return render_template('auth/register.html', form=form)
 
@@ -165,7 +131,7 @@ def create_booking(service_id):
     form = BookingForm()
     if form.validate_on_submit():
         service = Service.query.get_or_404(service_id)
-        hours = form.hours.data if hasattr(form, 'hours') else 1.0
+        hours = form.hours.data
         total_amount = service.rate * hours
         
         booking = Booking(
@@ -174,7 +140,8 @@ def create_booking(service_id):
             provider_id=service.provider_id,
             booking_date=form.booking_date.data,
             hours=hours,
-            total_amount=total_amount
+            total_amount=total_amount,
+            status='pending'
         )
         db.session.add(booking)
         db.session.commit()
@@ -236,13 +203,6 @@ def chat(user_id):
     ).order_by(Message.created_at).all()
     return render_template('messages/chat.html', messages=messages, form=form, other_user_id=user_id)
 
-@app.route('/logout')
-@login_required
-def logout():
-    logout_user()
-    flash('You have been logged out successfully.', 'success')
-    return redirect(url_for('index'))
-
 @app.route('/bookings')
 @login_required
 def bookings():
@@ -251,3 +211,15 @@ def bookings():
     else:
         bookings = Booking.query.filter_by(provider_id=current_user.id).all()
     return render_template('bookings.html', bookings=bookings)
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    flash('You have been logged out successfully.', 'success')
+    return redirect(url_for('index'))
+
+@app.route('/profile')
+@login_required
+def profile():
+    return render_template('profile.html')

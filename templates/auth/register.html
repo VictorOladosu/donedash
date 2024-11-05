@@ -14,7 +14,6 @@
                 {% endif %}
                 
                 <form method="POST" action="{{ url_for('register') }}">
-                    {{ form.csrf_token }}
                     {{ form.hidden_tag() }}
                     <div class="mb-3">
                         {{ form.username.label(class="form-label") }}

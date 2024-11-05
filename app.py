@@ -1,10 +1,7 @@
-from main import app, db, login_manager
-from models import User
+from main import app
+from extensions import db
 from routes import *
-
-@login_manager.user_loader
-def load_user(id):
-    return User.query.get(int(id))
+from payment_routes import *
 
 if __name__ == '__main__':
     with app.app_context():

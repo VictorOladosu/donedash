@@ -1,7 +1,8 @@
 import stripe
 import os
-from flask import jsonify, request, current_app
-from main import app, db, logger
+from flask import jsonify, request
+from main import app, logger
+from extensions import db
 from models import Booking
 from flask_login import login_required, current_user
 from werkzeug.exceptions import BadRequest
@@ -27,7 +28,7 @@ def create_payment_intent(booking_id):
         # Calculate amount in cents
         amount = int(booking.total_amount * 100)
         
-        # Create a PaymentIntent with application fee
+        # Create a PaymentIntent with the booking details
         intent = stripe.PaymentIntent.create(
             amount=amount,
             currency='usd',
@@ -87,7 +88,7 @@ def stripe_webhook():
             else:
                 logger.error(f"Booking {booking_id} not found for successful payment")
         
-        if event['type'] == 'payment_intent.payment_failed':
+        elif event['type'] == 'payment_intent.payment_failed':
             payment_intent = event['data']['object']
             booking_id = payment_intent['metadata']['booking_id']
             logger.error(f"Payment failed for booking {booking_id}")

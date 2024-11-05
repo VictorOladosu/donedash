@@ -1,10 +1,10 @@
 import os
 from flask import Flask, render_template, jsonify, request, session
-from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager
-from flask_wtf.csrf import CSRFProtect, CSRFError, generate_csrf
 import logging
 from datetime import timedelta
+from extensions import db, login_manager, csrf
+from flask_wtf.csrf import CSRFError
+from models import User
 
 # Configure logging with more verbose format
 logging.basicConfig(
@@ -30,7 +30,15 @@ app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=60)
 app.config['WTF_CSRF_ENABLED'] = True
 app.config['WTF_CSRF_SECRET_KEY'] = os.environ['FLASK_SECRET_KEY']
 app.config['WTF_CSRF_TIME_LIMIT'] = 3600  # 1 hour expiry
-csrf = CSRFProtect(app)
+
+# Initialize extensions with app
+db.init_app(app)
+login_manager.init_app(app)
+csrf.init_app(app)
+
+@login_manager.user_loader
+def load_user(id):
+    return User.query.get(int(id))
 
 # CSRF error handler with detailed logging
 @app.errorhandler(CSRFError)
@@ -41,23 +49,6 @@ def handle_csrf_error(e):
     logger.error(f"Request headers: {dict(request.headers)}")
     return render_template('auth/register.html', 
                          csrf_error="CSRF token validation failed. Please try again."), 400
-
-# Enhanced CSRF token logging
-@app.after_request
-def after_request(response):
-    if request.method == "GET":
-        try:
-            token = generate_csrf()
-            logger.debug(f"Generated CSRF token for path: {request.path}")
-            logger.debug(f"Session ID: {session.get('_id', 'Not set')}")
-            logger.debug(f"Session contains CSRF token: {'csrf_token' in session}")
-        except Exception as e:
-            logger.error(f"Error generating CSRF token: {str(e)}")
-    return response
-
-db = SQLAlchemy(app)
-login_manager = LoginManager(app)
-login_manager.login_view = 'login'
 
 # Enhanced form validation error logging
 @app.after_request
