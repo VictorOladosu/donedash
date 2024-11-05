@@ -1,11 +1,13 @@
 from flask import render_template, redirect, url_for, flash, request, jsonify, session
 from flask_login import login_user, logout_user, login_required, current_user
+from flask_wtf.csrf import CSRFError
 from main import app, db, logger
 from models import User, Service, Booking, Message, Review
 from forms import LoginForm, RegistrationForm, ServiceForm, BookingForm, MessageForm, ReviewForm
 from datetime import datetime
 import os
 from werkzeug.exceptions import BadRequest
+from sqlalchemy.exc import IntegrityError
 
 @app.route('/')
 def index():
@@ -54,6 +56,13 @@ def register():
         return redirect(url_for('index'))
     
     form = RegistrationForm()
+    logger.debug(f"Processing registration request. Method: {request.method}")
+    
+    if request.method == 'POST':
+        logger.debug(f"Form data received: {request.form}")
+        logger.debug(f"CSRF token present in form: {form.csrf_token.current_token is not None}")
+        logger.debug(f"CSRF token present in session: {'csrf_token' in session}")
+    
     if form.validate_on_submit():
         try:
             if User.query.filter_by(username=form.username.data).first():
@@ -76,18 +85,27 @@ def register():
             db.session.add(user)
             db.session.commit()
             
-            session.permanent = True  # Use permanent session
             logger.info(f"New user registered successfully: {user.email}")
             flash('Registration successful! Please login.', 'success')
             return redirect(url_for('login'))
-        except BadRequest as e:
+            
+        except CSRFError as e:
+            db.session.rollback()
             logger.error(f"CSRF validation failed during registration: {str(e)}")
             flash('Form validation failed. Please try again.', 'danger')
-            return redirect(url_for('register'))
+            return render_template('auth/register.html', form=form, csrf_error=str(e))
+            
+        except IntegrityError as e:
+            db.session.rollback()
+            logger.error(f"Database integrity error during registration: {str(e)}")
+            flash('An error occurred during registration. Please try again.', 'danger')
+            return render_template('auth/register.html', form=form)
+            
         except Exception as e:
             db.session.rollback()
-            logger.error(f"Registration error: {str(e)}")
-            flash('An error occurred during registration. Please try again.', 'danger')
+            logger.error(f"Unexpected error during registration: {str(e)}")
+            flash('An unexpected error occurred. Please try again.', 'danger')
+            return render_template('auth/register.html', form=form)
     
     if form.errors:
         logger.debug(f"Registration form validation errors: {form.errors}")

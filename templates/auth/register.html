@@ -6,7 +6,15 @@
         <div class="card">
             <div class="card-body">
                 <h2 class="card-title text-center mb-4">Register</h2>
+                
+                {% if csrf_error %}
+                <div class="alert alert-danger">
+                    {{ csrf_error }}
+                </div>
+                {% endif %}
+                
                 <form method="POST" action="{{ url_for('register') }}">
+                    {{ form.csrf_token }}
                     {{ form.hidden_tag() }}
                     <div class="mb-3">
                         {{ form.username.label(class="form-label") }}
