@@ -16,6 +16,9 @@ class User(UserMixin, db.Model):
     description = db.Column(db.Text)
     skills = db.Column(db.String(500))
     
+    # Notifications relationship
+    notifications = db.relationship('Notification', backref='user', lazy='dynamic')
+    
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
         
@@ -58,4 +61,13 @@ class Review(db.Model):
     customer_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     rating = db.Column(db.Integer, nullable=False)
     comment = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class Notification(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    title = db.Column(db.String(100), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    type = db.Column(db.String(20), nullable=False)  # booking_update, payment, message
+    read = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)

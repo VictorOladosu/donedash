@@ -6,6 +6,7 @@ from extensions import db
 from models import Booking
 from flask_login import login_required, current_user
 from werkzeug.exceptions import BadRequest
+from routes import send_notification
 
 stripe.api_key = os.environ['STRIPE_SECRET_KEY']
 
@@ -85,12 +86,34 @@ def stripe_webhook():
                 booking.status = 'confirmed'
                 db.session.commit()
                 logger.info(f"Payment succeeded for booking {booking_id}")
+                
+                # Send notifications
+                send_notification(
+                    booking.customer_id,
+                    'Payment Successful',
+                    f'Your payment for booking #{booking.id} was successful',
+                    'payment'
+                )
+                send_notification(
+                    booking.provider_id,
+                    'New Booking Confirmed',
+                    f'New booking confirmed for {booking.service.title}',
+                    'booking_update'
+                )
             else:
                 logger.error(f"Booking {booking_id} not found for successful payment")
         
         elif event['type'] == 'payment_intent.payment_failed':
             payment_intent = event['data']['object']
             booking_id = payment_intent['metadata']['booking_id']
+            booking = Booking.query.get(booking_id)
+            if booking:
+                send_notification(
+                    booking.customer_id,
+                    'Payment Failed',
+                    f'Your payment for booking #{booking.id} failed. Please try again.',
+                    'payment'
+                )
             logger.error(f"Payment failed for booking {booking_id}")
 
         logger.info(f"Webhook processed successfully: {event['type']}")

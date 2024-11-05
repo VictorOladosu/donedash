@@ -1,14 +1,21 @@
-from flask import render_template, redirect, url_for, flash, request, jsonify, session
+from flask import render_template, redirect, url_for, flash, request, jsonify, session, Response
 from flask_login import login_user, logout_user, login_required, current_user
 from flask_wtf.csrf import CSRFError
 from extensions import db
 from main import app, logger
-from models import User, Service, Booking, Message, Review
+from models import User, Service, Booking, Message, Review, Notification
 from forms import LoginForm, RegistrationForm, ServiceForm, BookingForm, MessageForm, ReviewForm
 from datetime import datetime
 import os
 from werkzeug.exceptions import BadRequest
 from sqlalchemy.exc import IntegrityError
+import json
+from queue import Queue
+import threading
+
+# Store active SSE clients
+clients = {}
+lock = threading.Lock()
 
 @app.route('/')
 def index():
@@ -38,12 +45,6 @@ def login():
             logger.error(f"Login error: {str(e)}")
             flash('An error occurred during login. Please try again.', 'danger')
     
-    if form.errors:
-        logger.debug(f"Login form validation errors: {form.errors}")
-        for field, errors in form.errors.items():
-            for error in errors:
-                flash(f'{field.title()}: {error}', 'danger')
-    
     return render_template('auth/login.html', form=form)
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -54,14 +55,6 @@ def register():
     form = RegistrationForm()
     if form.validate_on_submit():
         try:
-            if User.query.filter_by(username=form.username.data).first():
-                flash('Username already exists. Please choose another.', 'danger')
-                return render_template('auth/register.html', form=form)
-            
-            if User.query.filter_by(email=form.email.data).first():
-                flash('Email already registered. Please use a different email.', 'danger')
-                return render_template('auth/register.html', form=form)
-            
             user = User(
                 username=form.username.data,
                 email=form.email.data,
@@ -74,7 +67,9 @@ def register():
             
             flash('Registration successful! Please login.', 'success')
             return redirect(url_for('login'))
-            
+        except IntegrityError:
+            db.session.rollback()
+            flash('Username or email already exists. Please choose another.', 'danger')
         except Exception as e:
             db.session.rollback()
             logger.error(f"Registration error: {str(e)}")
@@ -106,6 +101,7 @@ def create_service():
     if current_user.role != 'provider':
         flash('Only service providers can create services', 'danger')
         return redirect(url_for('index'))
+    
     form = ServiceForm()
     if form.validate_on_submit():
         service = Service(
@@ -119,7 +115,98 @@ def create_service():
         db.session.commit()
         flash('Service created successfully!', 'success')
         return redirect(url_for('services'))
+    
     return render_template('services/create.html', form=form)
+
+@app.route('/stream')
+@login_required
+def stream():
+    def event_stream():
+        # Get existing unread notifications
+        notifications = Notification.query.filter_by(
+            user_id=current_user.id,
+            read=False
+        ).order_by(Notification.created_at.desc()).all()
+        
+        # Send existing notifications
+        for notification in notifications:
+            data = {
+                'id': notification.id,
+                'title': notification.title,
+                'message': notification.message,
+                'type': notification.type,
+                'created_at': notification.created_at.isoformat()
+            }
+            yield f"data: {json.dumps(data)}\n\n"
+        
+        # Create a queue for this client
+        queue = Queue()
+        client_id = id(queue)
+        
+        with lock:
+            clients[client_id] = queue
+        
+        try:
+            while True:
+                # Get new notifications from the queue
+                data = queue.get()
+                yield f"data: {json.dumps(data)}\n\n"
+        except GeneratorExit:
+            with lock:
+                clients.pop(client_id, None)
+    
+    return Response(event_stream(), mimetype='text/event-stream')
+
+@app.route('/notifications/mark-read', methods=['POST'])
+@login_required
+def mark_notifications_read():
+    try:
+        notifications = Notification.query.filter_by(
+            user_id=current_user.id,
+            read=False
+        ).all()
+        
+        for notification in notifications:
+            notification.read = True
+        
+        db.session.commit()
+        return jsonify({'status': 'success'})
+    except Exception as e:
+        logger.error(f"Error marking notifications as read: {str(e)}")
+        return jsonify({'error': 'Failed to mark notifications as read'}), 500
+
+def send_notification(user_id, title, message, notification_type):
+    try:
+        # Create and save notification
+        notification = Notification(
+            user_id=user_id,
+            title=title,
+            message=message,
+            type=notification_type
+        )
+        db.session.add(notification)
+        db.session.commit()
+        
+        # Prepare notification data
+        data = {
+            'id': notification.id,
+            'title': title,
+            'message': message,
+            'type': notification_type,
+            'created_at': notification.created_at.isoformat()
+        }
+        
+        # Send to all active clients for this user
+        with lock:
+            for client_queue in clients.values():
+                try:
+                    client_queue.put_nowait(data)
+                except:
+                    continue
+        
+        logger.info(f"Notification sent to user {user_id}: {title}")
+    except Exception as e:
+        logger.error(f"Error sending notification: {str(e)}")
 
 @app.route('/booking/create/<int:service_id>', methods=['POST'])
 @login_required
@@ -145,6 +232,14 @@ def create_booking(service_id):
         )
         db.session.add(booking)
         db.session.commit()
+        
+        # Send notification to provider
+        send_notification(
+            service.provider_id,
+            'New Booking Request',
+            f'New booking request for {service.title} on {booking.booking_date.strftime("%Y-%m-%d %H:%M")}',
+            'booking_update'
+        )
         
         return redirect(url_for('payment', booking_id=booking.id))
     return redirect(url_for('service_detail', id=service_id))
@@ -175,12 +270,23 @@ def booking_confirmation(booking_id):
         flash('Unauthorized access', 'danger')
         return redirect(url_for('index'))
     
+    # Send notification to provider about payment confirmation
+    if booking.payment_status == 'paid':
+        send_notification(
+            booking.provider_id,
+            'Payment Received',
+            f'Payment received for booking #{booking.id} - {booking.service.title}',
+            'payment'
+        )
+    
     return render_template('services/booking_confirmation.html', booking=booking)
 
 @app.route('/messages')
 @login_required
 def messages():
-    conversations = db.session.query(Message.sender_id, Message.receiver_id).distinct().all()
+    conversations = Message.query.filter(
+        (Message.sender_id == current_user.id) | (Message.receiver_id == current_user.id)
+    ).distinct(Message.sender_id, Message.receiver_id).all()
     return render_template('messages/chat.html', conversations=conversations)
 
 @app.route('/messages/<int:user_id>', methods=['GET', 'POST'])
@@ -195,12 +301,22 @@ def chat(user_id):
         )
         db.session.add(message)
         db.session.commit()
+        
+        # Send notification to the message receiver
+        send_notification(
+            user_id,
+            'New Message',
+            f'You have a new message from {current_user.username}',
+            'message'
+        )
+        
         return redirect(url_for('chat', user_id=user_id))
     
     messages = Message.query.filter(
         ((Message.sender_id == current_user.id) & (Message.receiver_id == user_id)) |
         ((Message.sender_id == user_id) & (Message.receiver_id == current_user.id))
     ).order_by(Message.created_at).all()
+    
     return render_template('messages/chat.html', messages=messages, form=form, other_user_id=user_id)
 
 @app.route('/bookings')
