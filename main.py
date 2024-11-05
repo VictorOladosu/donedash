@@ -7,7 +7,7 @@ import logging
 from datetime import timedelta
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)  # Set to DEBUG for development
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
@@ -18,7 +18,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.environ['DATABASE_URL']
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Session configuration
-app.config['SESSION_COOKIE_SECURE'] = True  # Enable in production
+app.config['SESSION_COOKIE_SECURE'] = False  # Set to False for development
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=60)
 
@@ -32,6 +32,15 @@ csrf = CSRFProtect(app)
 def handle_csrf_error(e):
     logger.error(f"CSRF error occurred: {str(e)}")
     return jsonify(error="CSRF token validation failed. Please try again."), 400
+
+# Log CSRF token generation
+@app.after_request
+def after_request(response):
+    if request.method == "GET":
+        token = session.get('csrf_token')
+        if token:
+            logger.debug(f"Generated CSRF token for {request.path}")
+    return response
 
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)

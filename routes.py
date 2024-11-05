@@ -5,6 +5,7 @@ from models import User, Service, Booking, Message, Review
 from forms import LoginForm, RegistrationForm, ServiceForm, BookingForm, MessageForm, ReviewForm
 from datetime import datetime
 import os
+from werkzeug.exceptions import BadRequest
 
 @app.route('/')
 def index():
@@ -30,6 +31,10 @@ def login():
             
             logger.warning(f"Failed login attempt for email: {form.email.data}")
             flash('Invalid email or password. Please try again.', 'danger')
+        except BadRequest as e:
+            logger.error(f"CSRF validation failed during login: {str(e)}")
+            flash('Form validation failed. Please try again.', 'danger')
+            return redirect(url_for('login'))
         except Exception as e:
             logger.error(f"Login error: {str(e)}")
             flash('An error occurred during login. Please try again.', 'danger')
@@ -75,6 +80,10 @@ def register():
             logger.info(f"New user registered successfully: {user.email}")
             flash('Registration successful! Please login.', 'success')
             return redirect(url_for('login'))
+        except BadRequest as e:
+            logger.error(f"CSRF validation failed during registration: {str(e)}")
+            flash('Form validation failed. Please try again.', 'danger')
+            return redirect(url_for('register'))
         except Exception as e:
             db.session.rollback()
             logger.error(f"Registration error: {str(e)}")

@@ -4,6 +4,7 @@ from flask import jsonify, request, current_app
 from main import app, db, logger
 from models import Booking
 from flask_login import login_required, current_user
+from werkzeug.exceptions import BadRequest
 
 stripe.api_key = os.environ['STRIPE_SECRET_KEY']
 
@@ -26,13 +27,17 @@ def create_payment_intent(booking_id):
         # Calculate amount in cents
         amount = int(booking.total_amount * 100)
         
-        # Create a PaymentIntent
+        # Create a PaymentIntent with application fee
         intent = stripe.PaymentIntent.create(
             amount=amount,
             currency='usd',
             metadata={
                 'booking_id': booking_id,
-                'customer_id': current_user.id
+                'customer_id': current_user.id,
+                'service_title': booking.service.title
+            },
+            automatic_payment_methods={
+                'enabled': True,
             }
         )
         
@@ -81,6 +86,11 @@ def stripe_webhook():
                 logger.info(f"Payment succeeded for booking {booking_id}")
             else:
                 logger.error(f"Booking {booking_id} not found for successful payment")
+        
+        if event['type'] == 'payment_intent.payment_failed':
+            payment_intent = event['data']['object']
+            booking_id = payment_intent['metadata']['booking_id']
+            logger.error(f"Payment failed for booking {booking_id}")
 
         logger.info(f"Webhook processed successfully: {event['type']}")
         return jsonify({"status": "success"})

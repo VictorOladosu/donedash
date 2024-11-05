@@ -7,7 +7,6 @@
             <div class="card-body">
                 <h2 class="card-title text-center mb-4">Register</h2>
                 <form method="POST" action="{{ url_for('register') }}">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     {{ form.hidden_tag() }}
                     <div class="mb-3">
                         {{ form.username.label(class="form-label") }}
