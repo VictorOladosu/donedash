@@ -1,6 +1,6 @@
-from flask import render_template, redirect, url_for, flash, request, jsonify
+from flask import render_template, redirect, url_for, flash, request, jsonify, session
 from flask_login import login_user, logout_user, login_required, current_user
-from main import app, db
+from main import app, db, logger
 from models import User, Service, Booking, Message, Review
 from forms import LoginForm, RegistrationForm, ServiceForm, BookingForm, MessageForm, ReviewForm
 from datetime import datetime
@@ -20,12 +20,17 @@ def login():
         user = User.query.filter_by(email=form.email.data).first()
         if user and user.check_password(form.password.data):
             login_user(user)
+            logger.info(f"User {user.email} logged in successfully")
             flash('Login successful!', 'success')
             return redirect(url_for('index'))
+        logger.warning(f"Failed login attempt for email: {form.email.data}")
         flash('Invalid email or password. Please try again.', 'danger')
-    for field, errors in form.errors.items():
-        for error in errors:
-            flash(f'{field.title()}: {error}', 'danger')
+    if form.errors:
+        logger.debug(f"Login form validation errors: {form.errors}")
+        session['_form_errors'] = form.errors
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(f'{field.title()}: {error}', 'danger')
     return render_template('auth/login.html', form=form)
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -36,7 +41,13 @@ def register():
     if form.validate_on_submit():
         try:
             if User.query.filter_by(username=form.username.data).first():
+                logger.warning(f"Registration attempt with existing username: {form.username.data}")
                 flash('Username already exists. Please choose another.', 'danger')
+                return render_template('auth/register.html', form=form)
+            
+            if User.query.filter_by(email=form.email.data).first():
+                logger.warning(f"Registration attempt with existing email: {form.email.data}")
+                flash('Email already registered. Please use a different email.', 'danger')
                 return render_template('auth/register.html', form=form)
             
             user = User(
@@ -49,16 +60,20 @@ def register():
             db.session.add(user)
             db.session.commit()
             
+            logger.info(f"New user registered successfully: {user.email}")
             flash('Registration successful! Please login.', 'success')
             return redirect(url_for('login'))
         except Exception as e:
             db.session.rollback()
+            logger.error(f"Registration error: {str(e)}")
             flash('An error occurred during registration. Please try again.', 'danger')
-            app.logger.error(f'Registration error: {str(e)}')
     
-    for field, errors in form.errors.items():
-        for error in errors:
-            flash(f'{field.title()}: {error}', 'danger')
+    if form.errors:
+        logger.debug(f"Registration form validation errors: {form.errors}")
+        session['_form_errors'] = form.errors
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(f'{field.title()}: {error}', 'danger')
     
     return render_template('auth/register.html', form=form)
 
