@@ -15,28 +15,39 @@ def index():
 def login():
     if current_user.is_authenticated:
         return redirect(url_for('index'))
+    
     form = LoginForm()
     if form.validate_on_submit():
-        user = User.query.filter_by(email=form.email.data).first()
-        if user and user.check_password(form.password.data):
-            login_user(user)
-            logger.info(f"User {user.email} logged in successfully")
-            flash('Login successful!', 'success')
-            return redirect(url_for('index'))
-        logger.warning(f"Failed login attempt for email: {form.email.data}")
-        flash('Invalid email or password. Please try again.', 'danger')
+        try:
+            user = User.query.filter_by(email=form.email.data).first()
+            if user and user.check_password(form.password.data):
+                login_user(user)
+                session.permanent = True  # Use permanent session
+                logger.info(f"User {user.email} logged in successfully")
+                flash('Login successful!', 'success')
+                next_page = request.args.get('next')
+                return redirect(next_page if next_page else url_for('index'))
+            
+            logger.warning(f"Failed login attempt for email: {form.email.data}")
+            flash('Invalid email or password. Please try again.', 'danger')
+        except Exception as e:
+            logger.error(f"Login error: {str(e)}")
+            flash('An error occurred during login. Please try again.', 'danger')
+    
     if form.errors:
         logger.debug(f"Login form validation errors: {form.errors}")
         session['_form_errors'] = form.errors
         for field, errors in form.errors.items():
             for error in errors:
                 flash(f'{field.title()}: {error}', 'danger')
+    
     return render_template('auth/login.html', form=form)
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if current_user.is_authenticated:
         return redirect(url_for('index'))
+    
     form = RegistrationForm()
     if form.validate_on_submit():
         try:
@@ -60,6 +71,7 @@ def register():
             db.session.add(user)
             db.session.commit()
             
+            session.permanent = True  # Use permanent session
             logger.info(f"New user registered successfully: {user.email}")
             flash('Registration successful! Please login.', 'success')
             return redirect(url_for('login'))
