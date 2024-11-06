@@ -1,65 +1,179 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-body">
-                <h2 class="card-title text-center mb-4">Register</h2>
-                
-                {% if csrf_error %}
-                <div class="alert alert-danger">
-                    {{ csrf_error }}
-                </div>
-                {% endif %}
-                
-                <form method="POST" action="{{ url_for('register') }}">
-                    {{ form.hidden_tag() }}
-                    <div class="mb-3">
-                        {{ form.username.label(class="form-label") }}
-                        {{ form.username(class="form-control" + (" is-invalid" if form.username.errors else "")) }}
-                        {% if form.username.errors %}
-                            {% for error in form.username.errors %}
-                                <div class="invalid-feedback">{{ error }}</div>
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-body p-4">
+                    <h2 class="card-title text-center mb-4">Create Account</h2>
+                    
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ category }} alert-dismissible fade show">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
                             {% endfor %}
                         {% endif %}
+                    {% endwith %}
+
+                    <form method="POST" action="{{ url_for('register') }}" id="registerForm" novalidate>
+                        {{ form.hidden_tag() }}
+                        <div class="mb-3">
+                            {{ form.username.label(class="form-label") }}
+                            {{ form.username(class="form-control" + (" is-invalid" if form.username.errors else ""), placeholder="Choose a username") }}
+                            <div class="invalid-feedback">
+                                {% if form.username.errors %}
+                                    {% for error in form.username.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            {{ form.email.label(class="form-label") }}
+                            {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else ""), placeholder="Enter your email") }}
+                            <div class="invalid-feedback">
+                                {% if form.email.errors %}
+                                    {% for error in form.email.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            {{ form.password.label(class="form-label") }}
+                            <div class="input-group">
+                                {{ form.password(class="form-control" + (" is-invalid" if form.password.errors else ""), placeholder="Create a password") }}
+                                <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                                    <i class="feather-icon" data-feather="eye"></i>
+                                </button>
+                            </div>
+                            <div class="password-strength mt-2 d-none">
+                                <div class="progress" style="height: 5px;">
+                                    <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                                </div>
+                                <small class="text-muted">Password strength: <span id="strengthText">Too weak</span></small>
+                            </div>
+                            <div class="invalid-feedback">
+                                {% if form.password.errors %}
+                                    {% for error in form.password.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            {{ form.role.label(class="form-label") }}
+                            {{ form.role(class="form-select" + (" is-invalid" if form.role.errors else "")) }}
+                            <div class="invalid-feedback">
+                                {% if form.role.errors %}
+                                    {% for error in form.role.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary" id="submitBtn">
+                                <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                                <span class="btn-text">Create Account</span>
+                            </button>
+                        </div>
+                    </form>
+                    <div class="text-center mt-4">
+                        <p class="mb-0">Already have an account? <a href="{{ url_for('login') }}" class="text-primary">Login here</a></p>
                     </div>
-                    <div class="mb-3">
-                        {{ form.email.label(class="form-label") }}
-                        {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else "")) }}
-                        {% if form.email.errors %}
-                            {% for error in form.email.errors %}
-                                <div class="invalid-feedback">{{ error }}</div>
-                            {% endfor %}
-                        {% endif %}
-                    </div>
-                    <div class="mb-3">
-                        {{ form.password.label(class="form-label") }}
-                        {{ form.password(class="form-control" + (" is-invalid" if form.password.errors else "")) }}
-                        {% if form.password.errors %}
-                            {% for error in form.password.errors %}
-                                <div class="invalid-feedback">{{ error }}</div>
-                            {% endfor %}
-                        {% endif %}
-                    </div>
-                    <div class="mb-3">
-                        {{ form.role.label(class="form-label") }}
-                        {{ form.role(class="form-control" + (" is-invalid" if form.role.errors else "")) }}
-                        {% if form.role.errors %}
-                            {% for error in form.role.errors %}
-                                <div class="invalid-feedback">{{ error }}</div>
-                            {% endfor %}
-                        {% endif %}
-                    </div>
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-primary">Register</button>
-                    </div>
-                </form>
-                <div class="text-center mt-3">
-                    <p>Already have an account? <a href="{{ url_for('login') }}">Login here</a></p>
                 </div>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('registerForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const togglePassword = document.getElementById('togglePassword');
+    const passwordInput = document.querySelector('input[type="password"]');
+    const strengthBar = document.querySelector('.progress-bar');
+    const strengthText = document.getElementById('strengthText');
+
+    // Form submission handling
+    form.addEventListener('submit', function(e) {
+        if (!form.checkValidity()) {
+            e.preventDefault();
+            e.stopPropagation();
+        } else {
+            submitBtn.disabled = true;
+            submitBtn.querySelector('.spinner-border').classList.remove('d-none');
+            submitBtn.querySelector('.btn-text').textContent = 'Creating Account...';
+        }
+        form.classList.add('was-validated');
+    });
+
+    // Password toggle
+    togglePassword.addEventListener('click', function() {
+        const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+        passwordInput.setAttribute('type', type);
+        this.querySelector('i').setAttribute('data-feather', type === 'password' ? 'eye' : 'eye-off');
+        feather.replace();
+    });
+
+    // Password strength indicator
+    passwordInput.addEventListener('input', function() {
+        const password = this.value;
+        let strength = 0;
+        
+        if (password.length >= 8) strength += 25;
+        if (password.match(/[a-z]/)) strength += 25;
+        if (password.match(/[A-Z]/)) strength += 25;
+        if (password.match(/[0-9]/)) strength += 25;
+        
+        strengthBar.style.width = strength + '%';
+        
+        if (strength < 50) {
+            strengthBar.className = 'progress-bar bg-danger';
+            strengthText.textContent = 'Too weak';
+        } else if (strength < 75) {
+            strengthBar.className = 'progress-bar bg-warning';
+            strengthText.textContent = 'Medium';
+        } else {
+            strengthBar.className = 'progress-bar bg-success';
+            strengthText.textContent = 'Strong';
+        }
+        
+        document.querySelector('.password-strength').classList.remove('d-none');
+    });
+
+    // Client-side validation
+    const validateEmail = (email) => {
+        return String(email)
+            .toLowerCase()
+            .match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/);
+    };
+
+    const emailInput = document.querySelector('input[type="email"]');
+    emailInput.addEventListener('input', function() {
+        if (!validateEmail(this.value)) {
+            this.setCustomValidity('Please enter a valid email address');
+        } else {
+            this.setCustomValidity('');
+        }
+    });
+
+    const usernameInput = document.querySelector('input[name="username"]');
+    usernameInput.addEventListener('input', function() {
+        if (this.value.length < 4) {
+            this.setCustomValidity('Username must be at least 4 characters long');
+        } else {
+            this.setCustomValidity('');
+        }
+    });
+});
+</script>
 {% endblock %}

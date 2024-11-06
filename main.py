@@ -20,11 +20,16 @@ app.config['SECRET_KEY'] = os.environ['FLASK_SECRET_KEY']
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ['DATABASE_URL']
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Enhanced session configuration
-app.config['SESSION_COOKIE_SECURE'] = True
+# Set development mode
+app.config['ENV'] = 'development'
+app.config['DEBUG'] = True
+
+# Enhanced session configuration for development
+app.config['SESSION_COOKIE_SECURE'] = False  # Set to False for development
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=60)
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=1)  # Extended session lifetime
+app.config['SESSION_REFRESH_EACH_REQUEST'] = True
 
 # Enhanced CSRF configuration
 app.config['WTF_CSRF_ENABLED'] = True
@@ -48,7 +53,7 @@ def handle_csrf_error(e):
     logger.error(f"Request method: {request.method}")
     logger.error(f"Request headers: {dict(request.headers)}")
     return render_template('auth/register.html', 
-                         csrf_error="CSRF token validation failed. Please try again."), 400
+                         csrf_error="Security token has expired. Please try again."), 400
 
 # Enhanced form validation error logging
 @app.after_request
@@ -65,8 +70,16 @@ def log_validation_errors(response):
 # Session initialization and monitoring
 @app.before_request
 def before_request():
-    if not session.get('_fresh'):
-        session.permanent = True
+    session.permanent = True
+    if not request.is_secure and app.config['ENV'] == 'production':
+        logger.warning(f"Insecure request received for path: {request.path}")
+    
+    # Initialize session if needed
+    if '_fresh' not in session:
+        session['_fresh'] = True
         logger.debug(f"New session created for path: {request.path}")
         logger.debug(f"Session ID: {session.get('_id', 'Not set')}")
+    
+    # Log request details for debugging
+    if app.debug:
         logger.debug(f"Request headers: {dict(request.headers)}")
