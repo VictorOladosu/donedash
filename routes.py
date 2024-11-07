@@ -9,7 +9,7 @@ from datetime import datetime
 import os
 from werkzeug.exceptions import BadRequest
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy import or_
+from sqlalchemy import or_, func, case
 import json
 from queue import Queue
 import threading
@@ -83,12 +83,22 @@ def services():
     search = request.args.get('search')
     min_price = request.args.get('min_price', type=float)
     max_price = request.args.get('max_price', type=float)
+    min_rating = request.args.get('min_rating', type=int)
+    available_on = request.args.get('available_on')
+    location = request.args.get('location')
     sort = request.args.get('sort', 'newest')
 
-    query = Service.query
+    query = db.session.query(
+        Service,
+        func.avg(Review.rating).label('avg_rating'),
+        func.count(Review.id).label('review_count'),
+        func.count(Booking.id).label('booking_count')
+    ).outerjoin(Review, Review.service_id == Service.id
+    ).outerjoin(Booking, Booking.service_id == Service.id
+    ).group_by(Service.id)
 
     if category:
-        query = query.filter_by(category=category)
+        query = query.filter(Service.category == category)
 
     if search:
         search_term = f"%{search}%"
@@ -104,15 +114,39 @@ def services():
     if max_price is not None:
         query = query.filter(Service.rate <= max_price)
 
+    if min_rating:
+        query = query.having(func.avg(Review.rating) >= min_rating)
+
+    if available_on:
+        try:
+            available_datetime = datetime.fromisoformat(available_on)
+            pass
+        except ValueError:
+            flash('Invalid date format for availability filter', 'warning')
+
+    if location:
+        pass
+
     if sort == 'price_low':
         query = query.order_by(Service.rate.asc())
     elif sort == 'price_high':
         query = query.order_by(Service.rate.desc())
+    elif sort == 'rating':
+        query = query.order_by(func.avg(Review.rating).desc().nullslast())
+    elif sort == 'popular':
+        query = query.order_by(func.count(Booking.id).desc())
     else:
         query = query.order_by(Service.created_at.desc())
 
-    services = query.all()
+    results = query.all()
     
+    services = []
+    for service, avg_rating, review_count, booking_count in results:
+        service.avg_rating = float(avg_rating) if avg_rating else None
+        service.review_count = review_count
+        service.booking_count = booking_count
+        services.append(service)
+
     return render_template('services/list.html', services=services)
 
 @app.route('/service/<int:id>')

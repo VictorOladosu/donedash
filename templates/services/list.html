@@ -17,12 +17,29 @@
                 </div>
                 
                 <!-- Price Range -->
-                <div class="col-md-6">
+                <div class="col-12">
                     <div class="form-group">
                         <label class="form-label">Price Range ($/hr)</label>
-                        <div class="d-flex gap-2">
-                            <input type="number" name="min_price" class="form-control" placeholder="Min" value="{{ request.args.get('min_price', '') }}">
-                            <input type="number" name="max_price" class="form-control" placeholder="Max" value="{{ request.args.get('max_price', '') }}">
+                        <div class="price-range-wrapper">
+                            <input type="range" class="form-range" id="priceRange" min="0" max="200" step="5">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span id="priceRangeValue">$0 - $200</span>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="clearPriceRange">Clear</button>
+                            </div>
+                            <div class="btn-group w-100 mb-2" role="group">
+                                <input type="radio" class="btn-check" name="price_preset" id="price_all" value="" checked>
+                                <label class="btn btn-outline-primary" for="price_all">All</label>
+                                <input type="radio" class="btn-check" name="price_preset" id="price_25" value="25">
+                                <label class="btn btn-outline-primary" for="price_25">Under $25</label>
+                                <input type="radio" class="btn-check" name="price_preset" id="price_50" value="50">
+                                <label class="btn btn-outline-primary" for="price_50">$25-$50</label>
+                                <input type="radio" class="btn-check" name="price_preset" id="price_100" value="100">
+                                <label class="btn btn-outline-primary" for="price_100">$50-$100</label>
+                                <input type="radio" class="btn-check" name="price_preset" id="price_100plus" value="101">
+                                <label class="btn btn-outline-primary" for="price_100plus">$100+</label>
+                            </div>
+                            <input type="hidden" name="min_price" id="minPrice" value="{{ request.args.get('min_price', '') }}">
+                            <input type="hidden" name="max_price" id="maxPrice" value="{{ request.args.get('max_price', '') }}">
                         </div>
                     </div>
                 </div>
@@ -35,20 +52,58 @@
                             <input type="radio" class="btn-check" name="category" id="all" value="" {% if not request.args.get('category') %}checked{% endif %}>
                             <label class="btn btn-outline-primary" for="all">All</label>
                             
-                            <input type="radio" class="btn-check" name="category" id="cleaning" value="cleaning" {% if request.args.get('category') == 'cleaning' %}checked{% endif %}>
-                            <label class="btn btn-outline-primary" for="cleaning">Cleaning</label>
-                            
-                            <input type="radio" class="btn-check" name="category" id="handyman" value="handyman" {% if request.args.get('category') == 'handyman' %}checked{% endif %}>
-                            <label class="btn btn-outline-primary" for="handyman">Handyman</label>
-                            
-                            <input type="radio" class="btn-check" name="category" id="moving" value="moving" {% if request.args.get('category') == 'moving' %}checked{% endif %}>
-                            <label class="btn btn-outline-primary" for="moving">Moving</label>
-                            
-                            <input type="radio" class="btn-check" name="category" id="gardening" value="gardening" {% if request.args.get('category') == 'gardening' %}checked{% endif %}>
-                            <label class="btn btn-outline-primary" for="gardening">Gardening</label>
-                            
-                            <input type="radio" class="btn-check" name="category" id="other" value="other" {% if request.args.get('category') == 'other' %}checked{% endif %}>
-                            <label class="btn btn-outline-primary" for="other">Other</label>
+                            {% for cat_value, cat_label in [
+                                ('cleaning', 'Cleaning'),
+                                ('handyman', 'Handyman'),
+                                ('moving', 'Moving'),
+                                ('gardening', 'Gardening'),
+                                ('personal_care', 'Personal Care'),
+                                ('technology', 'Technology'),
+                                ('education', 'Education'),
+                                ('pet_care', 'Pet Care'),
+                                ('other', 'Other')
+                            ] %}
+                            <input type="radio" class="btn-check" name="category" id="{{ cat_value }}" value="{{ cat_value }}" 
+                                {% if request.args.get('category') == cat_value %}checked{% endif %}>
+                            <label class="btn btn-outline-primary" for="{{ cat_value }}">{{ cat_label }}</label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Advanced Filters -->
+                <div class="col-12">
+                    <button class="btn btn-outline-secondary w-100" type="button" data-bs-toggle="collapse" data-bs-target="#advancedFilters">
+                        Advanced Filters
+                    </button>
+                    <div class="collapse mt-3" id="advancedFilters">
+                        <div class="row g-3">
+                            <!-- Provider Rating Filter -->
+                            <div class="col-md-6">
+                                <label class="form-label">Minimum Provider Rating</label>
+                                <select name="min_rating" class="form-select">
+                                    <option value="">Any Rating</option>
+                                    {% for i in range(5, 0, -1) %}
+                                    <option value="{{ i }}" {% if request.args.get('min_rating')|int == i %}selected{% endif %}>
+                                        {{ i }}+ Stars
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <!-- Availability Filter -->
+                            <div class="col-md-6">
+                                <label class="form-label">Available On</label>
+                                <input type="datetime-local" name="available_on" class="form-control" 
+                                    value="{{ request.args.get('available_on', '') }}">
+                            </div>
+
+                            <!-- Location Filter (if applicable) -->
+                            <div class="col-md-6">
+                                <label class="form-label">Location</label>
+                                <input type="text" name="location" class="form-control" placeholder="Enter location" 
+                                    value="{{ request.args.get('location', '') }}">
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -61,13 +116,18 @@
                             <option value="newest" {% if request.args.get('sort') == 'newest' %}selected{% endif %}>Newest First</option>
                             <option value="price_low" {% if request.args.get('sort') == 'price_low' %}selected{% endif %}>Price: Low to High</option>
                             <option value="price_high" {% if request.args.get('sort') == 'price_high' %}selected{% endif %}>Price: High to Low</option>
+                            <option value="rating" {% if request.args.get('sort') == 'rating' %}selected{% endif %}>Highest Rated</option>
+                            <option value="popular" {% if request.args.get('sort') == 'popular' %}selected{% endif %}>Most Popular</option>
                         </select>
                     </div>
                 </div>
 
                 <!-- Submit Button -->
                 <div class="col-md-6 d-flex align-items-end">
-                    <button type="submit" class="btn btn-primary w-100">Apply Filters</button>
+                    <div class="d-flex gap-2 w-100">
+                        <button type="submit" class="btn btn-primary flex-grow-1">Apply Filters</button>
+                        <a href="{{ url_for('services') }}" class="btn btn-outline-secondary">Clear All</a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -89,6 +149,15 @@
                         </div>
                         <h6 class="card-subtitle mb-2 text-muted">${{ "%.2f"|format(service.rate) }}/hr</h6>
                         <p class="card-text">{{ service.description[:100] }}...</p>
+                        {% if service.avg_rating %}
+                        <div class="mb-2">
+                            <span class="text-warning">
+                                {% for _ in range(service.avg_rating|round|int) %}★{% endfor %}
+                                {% for _ in range(5 - service.avg_rating|round|int) %}☆{% endfor %}
+                            </span>
+                            <small class="text-muted">({{ service.review_count }} reviews)</small>
+                        </div>
+                        {% endif %}
                         <button class="btn btn-sm btn-outline-primary w-100 mt-2">View Details</button>
                     </div>
                 </div>
@@ -109,10 +178,60 @@
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Make filter buttons touch-friendly on mobile
-    const filterScroll = document.querySelector('.filter-scroll');
-    let isScrolling = false;
-    
+    // Price Range Slider
+    const priceRange = document.getElementById('priceRange');
+    const priceRangeValue = document.getElementById('priceRangeValue');
+    const minPriceInput = document.getElementById('minPrice');
+    const maxPriceInput = document.getElementById('maxPrice');
+    const clearPriceRange = document.getElementById('clearPriceRange');
+
+    // Initialize price range
+    const initialMinPrice = minPriceInput.value || 0;
+    const initialMaxPrice = maxPriceInput.value || 200;
+    priceRange.value = initialMaxPrice;
+    updatePriceRangeValue(initialMinPrice, initialMaxPrice);
+
+    function updatePriceRangeValue(min, max) {
+        priceRangeValue.textContent = `$${min} - $${max}`;
+        minPriceInput.value = min;
+        maxPriceInput.value = max;
+    }
+
+    priceRange.addEventListener('input', function() {
+        updatePriceRangeValue(0, this.value);
+    });
+
+    clearPriceRange.addEventListener('click', function() {
+        priceRange.value = 200;
+        updatePriceRangeValue(0, 200);
+        document.querySelector('input[name="price_preset"][value=""]').checked = true;
+    });
+
+    // Price Preset Buttons
+    document.querySelectorAll('input[name="price_preset"]').forEach(input => {
+        input.addEventListener('change', function() {
+            if (this.value === '') {
+                updatePriceRangeValue(0, 200);
+                priceRange.value = 200;
+            } else {
+                const value = parseInt(this.value);
+                if (this.id === 'price_25') {
+                    updatePriceRangeValue(0, 25);
+                    priceRange.value = 25;
+                } else if (this.id === 'price_50') {
+                    updatePriceRangeValue(25, 50);
+                    priceRange.value = 50;
+                } else if (this.id === 'price_100') {
+                    updatePriceRangeValue(50, 100);
+                    priceRange.value = 100;
+                } else if (this.id === 'price_100plus') {
+                    updatePriceRangeValue(100, 200);
+                    priceRange.value = 200;
+                }
+            }
+        });
+    });
+
     // Auto-submit form when category changes
     document.querySelectorAll('input[name="category"]').forEach(input => {
         input.addEventListener('change', () => {
@@ -124,6 +243,10 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelector('select[name="sort"]').addEventListener('change', function() {
         this.closest('form').submit();
     });
+    
+    // Mobile touch handling for filter scroll
+    const filterScroll = document.querySelector('.filter-scroll');
+    let isScrolling = false;
     
     filterScroll.addEventListener('touchstart', () => {
         isScrolling = false;
@@ -173,6 +296,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 this.closest('form').submit();
             }
         }, 500));
+    }
+
+    // Location autofill (if applicable)
+    const locationInput = document.querySelector('input[name="location"]');
+    if (locationInput && 'geolocation' in navigator) {
+        const locationButton = document.createElement('button');
+        locationButton.type = 'button';
+        locationButton.className = 'btn btn-outline-secondary mt-2';
+        locationButton.innerHTML = '<i class="feather-map-pin"></i> Use Current Location';
+        locationInput.parentNode.appendChild(locationButton);
+
+        locationButton.addEventListener('click', () => {
+            navigator.geolocation.getCurrentPosition(position => {
+                const { latitude, longitude } = position.coords;
+                locationInput.value = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+            });
+        });
     }
 });
 </script>

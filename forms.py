@@ -27,6 +27,10 @@ class ServiceForm(FlaskForm):
         ('handyman', 'Handyman'),
         ('moving', 'Moving'),
         ('gardening', 'Gardening'),
+        ('personal_care', 'Personal Care'),
+        ('technology', 'Technology'),
+        ('education', 'Education'),
+        ('pet_care', 'Pet Care'),
         ('other', 'Other')
     ])
 

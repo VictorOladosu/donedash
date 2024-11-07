@@ -33,6 +33,15 @@ class Service(db.Model):
     rate = db.Column(db.Float, nullable=False)
     category = db.Column(db.String(50), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Service availability
+    availability_start = db.Column(db.Time)
+    availability_end = db.Column(db.Time)
+    availability_days = db.Column(db.String(50))  # Comma-separated list of available days
+    
+    # Relationships
+    reviews = db.relationship('Review', backref='service', lazy='dynamic')
+    bookings = db.relationship('Booking', backref='service', lazy='dynamic')
 
 class Booking(db.Model):
     id = db.Column(db.Integer, primary_key=True)
