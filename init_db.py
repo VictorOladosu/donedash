@@ -15,16 +15,22 @@ def init_db():
             provider = User(
                 username="john_provider",
                 email="provider@example.com",
-                role="provider"
+                role="provider",
+                latitude=37.7749,
+                longitude=-122.4194,
+                address="San Francisco, CA"
             )
             provider.set_password("password123")
             db.session.add(provider)
             
-            # Create sample customer for reviews
+            # Create sample customer
             customer = User(
                 username="alice_customer",
                 email="customer@example.com",
-                role="customer"
+                role="customer",
+                latitude=37.7833,
+                longitude=-122.4167,
+                address="San Francisco, CA"
             )
             customer.set_password("password123")
             db.session.add(customer)
@@ -40,7 +46,14 @@ def init_db():
                     category="cleaning",
                     availability_start=time(9, 0),  # 9 AM
                     availability_end=time(17, 0),   # 5 PM
-                    availability_days="1,2,3,4,5"   # Monday to Friday
+                    availability_days="1,2,3,4,5",   # Monday to Friday
+                    service_area=20.0,
+                    location_flexible=True,
+                    experience_years=5,
+                    qualifications="Certified Professional Cleaner",
+                    languages="English, Spanish",
+                    tags="cleaning,housekeeping,deep cleaning,sanitization",
+                    featured=True
                 ),
                 Service(
                     provider_id=provider.id,
@@ -50,7 +63,12 @@ def init_db():
                     category="gardening",
                     availability_start=time(8, 0),
                     availability_end=time(18, 0),
-                    availability_days="1,2,3,4,5,6"
+                    availability_days="1,2,3,4,5,6",
+                    service_area=15.0,
+                    location_flexible=True,
+                    experience_years=3,
+                    languages="English",
+                    tags="gardening,lawn care,yard work,landscaping"
                 ),
                 Service(
                     provider_id=provider.id,
@@ -60,43 +78,21 @@ def init_db():
                     category="technology",
                     availability_start=time(10, 0),
                     availability_end=time(20, 0),
-                    availability_days="1,2,3,4,5,6,7"
-                ),
-                Service(
-                    provider_id=provider.id,
-                    title="Math Tutoring",
-                    description="Private math tutoring for all levels.",
-                    rate=45.00,
-                    category="education",
-                    availability_start=time(15, 0),
-                    availability_end=time(21, 0),
-                    availability_days="2,4,6"
-                ),
-                Service(
-                    provider_id=provider.id,
-                    title="Dog Walking",
-                    description="Professional dog walking and pet care services.",
-                    rate=30.00,
-                    category="pet_care",
-                    availability_start=time(8, 0),
-                    availability_end=time(18, 0),
-                    availability_days="1,2,3,4,5,6,7"
-                ),
-                Service(
-                    provider_id=provider.id,
-                    title="Hair Styling",
-                    description="Professional hair styling and cutting services.",
-                    rate=60.00,
-                    category="personal_care",
-                    availability_start=time(9, 0),
-                    availability_end=time(19, 0),
-                    availability_days="2,3,4,5,6"
+                    availability_days="1,2,3,4,5,6,7",
+                    service_area=25.0,
+                    location_flexible=True,
+                    experience_years=8,
+                    qualifications="CompTIA A+ Certified",
+                    languages="English",
+                    tags="computer repair,tech support,IT services,virus removal",
+                    featured=True
                 )
             ]
             
+            # Add services and reviews
             for service in services:
                 db.session.add(service)
-                # Add some sample reviews
+                # Add sample reviews
                 for _ in range(random.randint(3, 7)):
                     review = Review(
                         service_id=service.id,

@@ -16,6 +16,11 @@ class User(UserMixin, db.Model):
     description = db.Column(db.Text)
     skills = db.Column(db.String(500))
     
+    # Location fields
+    latitude = db.Column(db.Float)
+    longitude = db.Column(db.Float)
+    address = db.Column(db.String(200))
+    
     # Notifications relationship
     notifications = db.relationship('Notification', backref='user', lazy='dynamic')
     
@@ -39,7 +44,21 @@ class Service(db.Model):
     availability_end = db.Column(db.Time)
     availability_days = db.Column(db.String(50))  # Comma-separated list of available days
     
+    # Location information
+    service_area = db.Column(db.Float)  # Service area radius in miles
+    location_flexible = db.Column(db.Boolean, default=False)
+    
+    # Additional service details
+    experience_years = db.Column(db.Integer)
+    qualifications = db.Column(db.Text)
+    languages = db.Column(db.String(200))  # Comma-separated list of languages
+    
+    # Search optimization fields
+    tags = db.Column(db.String(500))  # Comma-separated tags for better search
+    featured = db.Column(db.Boolean, default=False)
+    
     # Relationships
+    provider = db.relationship('User', backref='services')
     reviews = db.relationship('Review', backref='service', lazy='dynamic')
     bookings = db.relationship('Booking', backref='service', lazy='dynamic')
 
