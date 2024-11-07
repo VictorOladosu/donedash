@@ -20,19 +20,35 @@
     <div class="row row-cols-1 row-cols-md-3 g-4">
         {% for service in services %}
         <div class="col">
-            <div class="card h-100">
-                <div class="card-body">
-                    <h5 class="card-title">{{ service.title }}</h5>
-                    <h6 class="card-subtitle mb-2 text-muted">${{ "%.2f"|format(service.rate) }}/hr</h6>
-                    <p class="card-text">{{ service.description[:150] }}...</p>
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span class="badge bg-primary">{{ service.category }}</span>
-                        <a href="{{ url_for('service_detail', id=service.id) }}" class="btn btn-sm btn-outline-primary">View Details</a>
+            <a href="{{ url_for('service_detail', id=service.id) }}" class="card-link">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ service.title }}</h5>
+                        <h6 class="card-subtitle mb-2 text-muted">${{ "%.2f"|format(service.rate) }}/hr</h6>
+                        <p class="card-text">{{ service.description[:150] }}...</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="badge bg-primary">{{ service.category }}</span>
+                            <button class="btn btn-sm btn-outline-primary view-details-btn">View Details</button>
+                        </div>
                     </div>
                 </div>
-            </div>
+            </a>
         </div>
         {% endfor %}
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Prevent the view details button from triggering the card click
+    document.querySelectorAll('.view-details-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            window.location.href = this.closest('.card-link').href;
+        });
+    });
+});
+</script>
 {% endblock %}
