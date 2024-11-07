@@ -4,17 +4,79 @@
 <div class="container">
     <h1 class="mb-4">Available Services</h1>
     
-    <div class="filter-scroll mb-4">
-        <div class="btn-group" role="group">
-            <a href="{{ url_for('services') }}" class="btn btn-outline-primary {% if not request.args.get('category') %}active{% endif %}">All</a>
-            <a href="{{ url_for('services', category='cleaning') }}" class="btn btn-outline-primary {% if request.args.get('category') == 'cleaning' %}active{% endif %}">Cleaning</a>
-            <a href="{{ url_for('services', category='handyman') }}" class="btn btn-outline-primary {% if request.args.get('category') == 'handyman' %}active{% endif %}">Handyman</a>
-            <a href="{{ url_for('services', category='moving') }}" class="btn btn-outline-primary {% if request.args.get('category') == 'moving' %}active{% endif %}">Moving</a>
-            <a href="{{ url_for('services', category='gardening') }}" class="btn btn-outline-primary {% if request.args.get('category') == 'gardening' %}active{% endif %}">Gardening</a>
-            <a href="{{ url_for('services', category='other') }}" class="btn btn-outline-primary {% if request.args.get('category') == 'other' %}active{% endif %}">Other</a>
-        </div>
-    </div>
+    <!-- Search and Filter Form -->
+    <form method="GET" class="card mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <!-- Search Bar -->
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label class="form-label">Search</label>
+                        <input type="text" name="search" class="form-control" placeholder="Search services..." value="{{ request.args.get('search', '') }}">
+                    </div>
+                </div>
+                
+                <!-- Price Range -->
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label class="form-label">Price Range ($/hr)</label>
+                        <div class="d-flex gap-2">
+                            <input type="number" name="min_price" class="form-control" placeholder="Min" value="{{ request.args.get('min_price', '') }}">
+                            <input type="number" name="max_price" class="form-control" placeholder="Max" value="{{ request.args.get('max_price', '') }}">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Categories -->
+                <div class="col-12">
+                    <label class="form-label">Categories</label>
+                    <div class="filter-scroll">
+                        <div class="btn-group" role="group">
+                            <input type="radio" class="btn-check" name="category" id="all" value="" {% if not request.args.get('category') %}checked{% endif %}>
+                            <label class="btn btn-outline-primary" for="all">All</label>
+                            
+                            <input type="radio" class="btn-check" name="category" id="cleaning" value="cleaning" {% if request.args.get('category') == 'cleaning' %}checked{% endif %}>
+                            <label class="btn btn-outline-primary" for="cleaning">Cleaning</label>
+                            
+                            <input type="radio" class="btn-check" name="category" id="handyman" value="handyman" {% if request.args.get('category') == 'handyman' %}checked{% endif %}>
+                            <label class="btn btn-outline-primary" for="handyman">Handyman</label>
+                            
+                            <input type="radio" class="btn-check" name="category" id="moving" value="moving" {% if request.args.get('category') == 'moving' %}checked{% endif %}>
+                            <label class="btn btn-outline-primary" for="moving">Moving</label>
+                            
+                            <input type="radio" class="btn-check" name="category" id="gardening" value="gardening" {% if request.args.get('category') == 'gardening' %}checked{% endif %}>
+                            <label class="btn btn-outline-primary" for="gardening">Gardening</label>
+                            
+                            <input type="radio" class="btn-check" name="category" id="other" value="other" {% if request.args.get('category') == 'other' %}checked{% endif %}>
+                            <label class="btn btn-outline-primary" for="other">Other</label>
+                        </div>
+                    </div>
+                </div>
 
+                <!-- Sort Options -->
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label class="form-label">Sort By</label>
+                        <select name="sort" class="form-select">
+                            <option value="newest" {% if request.args.get('sort') == 'newest' %}selected{% endif %}>Newest First</option>
+                            <option value="price_low" {% if request.args.get('sort') == 'price_low' %}selected{% endif %}>Price: Low to High</option>
+                            <option value="price_high" {% if request.args.get('sort') == 'price_high' %}selected{% endif %}>Price: High to Low</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="col-md-6 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">Apply Filters</button>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <!-- Results Count -->
+    <p class="text-muted mb-4">Showing {{ services|length }} result{% if services|length != 1 %}s{% endif %}</p>
+
+    <!-- Service Cards -->
     <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-4">
         {% for service in services %}
         <div class="col">
@@ -34,6 +96,13 @@
         </div>
         {% endfor %}
     </div>
+
+    {% if not services %}
+    <div class="text-center mt-4">
+        <p>No services found matching your criteria.</p>
+        <a href="{{ url_for('services') }}" class="btn btn-outline-primary">Clear Filters</a>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}
 
@@ -44,21 +113,24 @@ document.addEventListener('DOMContentLoaded', function() {
     const filterScroll = document.querySelector('.filter-scroll');
     let isScrolling = false;
     
+    // Auto-submit form when category changes
+    document.querySelectorAll('input[name="category"]').forEach(input => {
+        input.addEventListener('change', () => {
+            input.closest('form').submit();
+        });
+    });
+
+    // Auto-submit form when sort option changes
+    document.querySelector('select[name="sort"]').addEventListener('change', function() {
+        this.closest('form').submit();
+    });
+    
     filterScroll.addEventListener('touchstart', () => {
         isScrolling = false;
     });
     
     filterScroll.addEventListener('touchmove', () => {
         isScrolling = true;
-    });
-    
-    filterScroll.addEventListener('touchend', (e) => {
-        if (!isScrolling) {
-            const button = e.target.closest('.btn');
-            if (button) {
-                window.location.href = button.href;
-            }
-        }
     });
     
     // Add swipe gesture for category navigation
@@ -82,6 +154,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 behavior: 'smooth'
             });
         }
+    }
+
+    // Debounce function for search input
+    function debounce(func, wait) {
+        let timeout;
+        return function() {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(this, arguments), wait);
+        };
+    }
+
+    // Auto-submit form when search input changes (with debounce)
+    const searchInput = document.querySelector('input[name="search"]');
+    if (searchInput) {
+        searchInput.addEventListener('input', debounce(function() {
+            if (this.value.length >= 2 || this.value.length === 0) {
+                this.closest('form').submit();
+            }
+        }, 500));
     }
 });
 </script>

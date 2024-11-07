@@ -9,11 +9,11 @@ from datetime import datetime
 import os
 from werkzeug.exceptions import BadRequest
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import or_
 import json
 from queue import Queue
 import threading
 
-# Store active SSE clients
 clients = {}
 lock = threading.Lock()
 
@@ -80,10 +80,39 @@ def register():
 @app.route('/services')
 def services():
     category = request.args.get('category')
+    search = request.args.get('search')
+    min_price = request.args.get('min_price', type=float)
+    max_price = request.args.get('max_price', type=float)
+    sort = request.args.get('sort', 'newest')
+
     query = Service.query
+
     if category:
         query = query.filter_by(category=category)
-    services = query.order_by(Service.created_at.desc()).all()
+
+    if search:
+        search_term = f"%{search}%"
+        query = query.filter(
+            or_(
+                Service.title.ilike(search_term),
+                Service.description.ilike(search_term)
+            )
+        )
+
+    if min_price is not None:
+        query = query.filter(Service.rate >= min_price)
+    if max_price is not None:
+        query = query.filter(Service.rate <= max_price)
+
+    if sort == 'price_low':
+        query = query.order_by(Service.rate.asc())
+    elif sort == 'price_high':
+        query = query.order_by(Service.rate.desc())
+    else:
+        query = query.order_by(Service.created_at.desc())
+
+    services = query.all()
+    
     return render_template('services/list.html', services=services)
 
 @app.route('/service/<int:id>')
@@ -122,13 +151,11 @@ def create_service():
 @login_required
 def stream():
     def event_stream():
-        # Get existing unread notifications
         notifications = Notification.query.filter_by(
             user_id=current_user.id,
             read=False
         ).order_by(Notification.created_at.desc()).all()
         
-        # Send existing notifications
         for notification in notifications:
             data = {
                 'id': notification.id,
@@ -139,7 +166,6 @@ def stream():
             }
             yield f"data: {json.dumps(data)}\n\n"
         
-        # Create a queue for this client
         queue = Queue()
         client_id = id(queue)
         
@@ -148,7 +174,6 @@ def stream():
         
         try:
             while True:
-                # Get new notifications from the queue
                 data = queue.get()
                 yield f"data: {json.dumps(data)}\n\n"
         except GeneratorExit:
@@ -177,7 +202,6 @@ def mark_notifications_read():
 
 def send_notification(user_id, title, message, notification_type):
     try:
-        # Create and save notification
         notification = Notification(
             user_id=user_id,
             title=title,
@@ -187,7 +211,6 @@ def send_notification(user_id, title, message, notification_type):
         db.session.add(notification)
         db.session.commit()
         
-        # Prepare notification data
         data = {
             'id': notification.id,
             'title': title,
@@ -196,7 +219,6 @@ def send_notification(user_id, title, message, notification_type):
             'created_at': notification.created_at.isoformat()
         }
         
-        # Send to all active clients for this user
         with lock:
             for client_queue in clients.values():
                 try:
@@ -233,7 +255,6 @@ def create_booking(service_id):
         db.session.add(booking)
         db.session.commit()
         
-        # Send notification to provider
         send_notification(
             service.provider_id,
             'New Booking Request',
@@ -270,7 +291,6 @@ def booking_confirmation(booking_id):
         flash('Unauthorized access', 'danger')
         return redirect(url_for('index'))
     
-    # Send notification to provider about payment confirmation
     if booking.payment_status == 'paid':
         send_notification(
             booking.provider_id,
@@ -302,7 +322,6 @@ def chat(user_id):
         db.session.add(message)
         db.session.commit()
         
-        # Send notification to the message receiver
         send_notification(
             user_id,
             'New Message',
