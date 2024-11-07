@@ -19,6 +19,26 @@ body {
     line-height: 1.6;
 }
 
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+    color: var(--stripe-text);
+    font-weight: 600;
+}
+
+.text-muted {
+    color: var(--stripe-secondary-text) !important;
+}
+
+a {
+    color: var(--stripe-primary);
+    text-decoration: none;
+}
+
+a:hover {
+    color: var(--stripe-primary-hover);
+    text-decoration: none;
+}
+
 /* Card styles */
 .card {
     background-color: var(--stripe-card-background);
@@ -35,6 +55,15 @@ body {
 
 .card-body {
     padding: 1.75rem;
+}
+
+.card-title {
+    color: var(--stripe-text);
+    font-weight: 600;
+}
+
+.card-text {
+    color: var(--stripe-text);
 }
 
 /* Button styles */
@@ -79,6 +108,11 @@ body {
     transition: all 0.2s ease;
 }
 
+.form-label {
+    color: var(--stripe-text);
+    font-weight: 500;
+}
+
 .form-control:focus, .form-select:focus {
     border-color: var(--stripe-primary);
     box-shadow: 0 0 0 3px rgba(99, 91, 255, 0.15);
@@ -94,11 +128,16 @@ body {
     box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.15);
 }
 
+.form-text {
+    color: var(--stripe-secondary-text);
+}
+
 /* Alert styles */
 .alert {
     border-radius: 8px;
     border: none;
     padding: 1rem 1.25rem;
+    font-weight: 500;
 }
 
 .alert-success {
@@ -128,7 +167,7 @@ body {
     font-weight: 500;
     padding: 0.5rem 1rem;
     transition: color 0.2s ease;
-    color: var(--stripe-secondary-text);
+    color: var(--stripe-text);
 }
 
 .nav-link:hover {
@@ -147,7 +186,7 @@ body {
     stroke-linecap: round;
     stroke-linejoin: round;
     fill: none;
-    stroke: var(--stripe-secondary-text);
+    stroke: var(--stripe-text);
 }
 
 .notification-dropdown {
@@ -171,6 +210,15 @@ body {
     border-bottom: 1px solid var(--stripe-border);
     color: var(--stripe-text);
     transition: background-color 0.2s ease;
+}
+
+.notification-list .notification-item h6 {
+    color: var(--stripe-text);
+    margin-bottom: 0.25rem;
+}
+
+.notification-list .notification-item small {
+    color: var(--stripe-secondary-text);
 }
 
 .notification-list .dropdown-item:last-child {
