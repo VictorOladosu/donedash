@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">Subscription Management</h1>
+    
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Plan</th>
+                            <th>Status</th>
+                            <th>Start Date</th>
+                            <th>End Date</th>
+                            <th>Auto Renew</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for sub in subscriptions %}
+                        <tr>
+                            <td>{{ sub.user.username }}</td>
+                            <td>{{ sub.plan_type }}</td>
+                            <td>
+                                <span class="badge bg-{{ 'success' if sub.status == 'active' else 'danger' }}">
+                                    {{ sub.status }}
+                                </span>
+                            </td>
+                            <td>{{ sub.start_date.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ sub.end_date.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ 'Yes' if sub.auto_renew else 'No' }}</td>
+                            <td>
+                                <div class="btn-group">
+                                    <button class="btn btn-sm btn-outline-primary">Edit</button>
+                                    <button class="btn btn-sm btn-outline-danger">Cancel</button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -6,6 +6,7 @@ from extensions import db, login_manager, csrf
 from flask_wtf.csrf import CSRFError
 from models import User
 from forms import RegistrationForm, LoginForm
+from routes.admin import admin
 
 # Configure logging with more verbose format
 logging.basicConfig(
@@ -41,6 +42,9 @@ app.config['WTF_CSRF_TIME_LIMIT'] = 3600  # 1 hour expiry
 db.init_app(app)
 login_manager.init_app(app)
 csrf.init_app(app)
+
+# Register blueprints
+app.register_blueprint(admin)
 
 @login_manager.user_loader
 def load_user(id):
