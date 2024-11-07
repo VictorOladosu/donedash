@@ -5,6 +5,7 @@ from datetime import timedelta
 from extensions import db, login_manager, csrf
 from flask_wtf.csrf import CSRFError
 from models import User
+from forms import RegistrationForm, LoginForm
 
 # Configure logging with more verbose format
 logging.basicConfig(
@@ -52,7 +53,17 @@ def handle_csrf_error(e):
     logger.error(f"Request path: {request.path}")
     logger.error(f"Request method: {request.method}")
     logger.error(f"Request headers: {dict(request.headers)}")
-    return render_template('auth/register.html', 
+    
+    # Create appropriate form based on the route
+    if 'login' in request.path:
+        form = LoginForm()
+        template = 'auth/login.html'
+    else:
+        form = RegistrationForm()
+        template = 'auth/register.html'
+    
+    return render_template(template, 
+                         form=form,
                          csrf_error="Security token has expired. Please try again."), 400
 
 # Enhanced form validation error logging
