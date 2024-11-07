@@ -23,6 +23,10 @@ args = "Drop Tables"
 task = "workflow.run"
 args = "Init DB"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Setup GitHub"
+
 [[workflows.workflow]]
 name = "Flask Server"
 author = "agent"
@@ -65,6 +69,20 @@ task = "packager.installForAll"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python3 init_db.py"
+
+[[workflows.workflow]]
+name = "Setup GitHub"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python3 setup_github.py"
 
 [deployment]
 run = ["sh", "-c", "python3 app.py"]
