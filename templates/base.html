@@ -2,35 +2,50 @@
 <html data-bs-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>DoneDash</title>
     <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
     <link href="{{ url_for('static', filename='css/custom.css') }}" rel="stylesheet">
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top mb-4">
         <div class="container">
-            <a class="navbar-brand" href="{{ url_for('index') }}">DoneDash</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
+                <i data-feather="check-circle" class="me-2"></i>
+                DoneDash
+            </a>
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('services') }}">Services</a>
+                        <a class="nav-link d-flex align-items-center" href="{{ url_for('services') }}">
+                            <i data-feather="grid" class="me-2"></i>
+                            Services
+                        </a>
                     </li>
                     {% if current_user.is_authenticated %}
                         {% if current_user.role == 'provider' %}
                             <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for('create_service') }}">Create Service</a>
+                                <a class="nav-link d-flex align-items-center" href="{{ url_for('create_service') }}">
+                                    <i data-feather="plus-circle" class="me-2"></i>
+                                    Create Service
+                                </a>
                             </li>
                         {% endif %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('bookings') }}">Bookings</a>
+                            <a class="nav-link d-flex align-items-center" href="{{ url_for('bookings') }}">
+                                <i data-feather="calendar" class="me-2"></i>
+                                Bookings
+                            </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('messages') }}">Messages</a>
+                            <a class="nav-link d-flex align-items-center" href="{{ url_for('messages') }}">
+                                <i data-feather="message-circle" class="me-2"></i>
+                                Messages
+                            </a>
                         </li>
                     {% endif %}
                 </ul>
@@ -38,14 +53,17 @@
                     {% if current_user.is_authenticated %}
                         <li class="nav-item notification-item">
                             <div class="dropdown">
-                                <a class="nav-link position-relative" href="#" id="notificationsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <a class="nav-link position-relative d-flex align-items-center" href="#" id="notificationsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                     <i data-feather="bell" class="feather-icon"></i>
                                     <span id="notification-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none">
                                         0
                                     </span>
                                 </a>
                                 <div class="dropdown-menu dropdown-menu-end notification-dropdown" aria-labelledby="notificationsDropdown">
-                                    <div class="dropdown-header">Notifications</div>
+                                    <div class="dropdown-header d-flex justify-content-between align-items-center">
+                                        <span>Notifications</span>
+                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="dropdown"></button>
+                                    </div>
                                     <div id="notifications-list" class="notification-list">
                                         <!-- Notifications will be inserted here -->
                                     </div>
@@ -53,17 +71,29 @@
                             </div>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('profile') }}">Profile</a>
+                            <a class="nav-link d-flex align-items-center" href="{{ url_for('profile') }}">
+                                <i data-feather="user" class="me-2"></i>
+                                Profile
+                            </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
+                            <a class="nav-link d-flex align-items-center" href="{{ url_for('logout') }}">
+                                <i data-feather="log-out" class="me-2"></i>
+                                Logout
+                            </a>
                         </li>
                     {% else %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('login') }}">Login</a>
+                            <a class="nav-link d-flex align-items-center" href="{{ url_for('login') }}">
+                                <i data-feather="log-in" class="me-2"></i>
+                                Login
+                            </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('register') }}">Register</a>
+                            <a class="nav-link d-flex align-items-center" href="{{ url_for('register') }}">
+                                <i data-feather="user-plus" class="me-2"></i>
+                                Register
+                            </a>
                         </li>
                     {% endif %}
                 </ul>
@@ -71,11 +101,14 @@
         </div>
     </nav>
 
-    <div class="container">
+    <div class="container mb-4">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                    <div class="alert alert-{{ category }} alert-dismissible fade show">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
                 {% endfor %}
             {% endif %}
         {% endwith %}
@@ -96,6 +129,10 @@
             const notification = JSON.parse(event.data);
             addNotification(notification);
             updateNotificationBadge(++unreadCount);
+            // Vibrate on mobile devices for new notifications
+            if ('vibrate' in navigator) {
+                navigator.vibrate(200);
+            }
         };
 
         function addNotification(notification) {
@@ -134,6 +171,16 @@
         // Initialize Feather icons
         document.addEventListener('DOMContentLoaded', function() {
             feather.replace();
+            
+            // Close navbar collapse on link click (mobile)
+            document.querySelectorAll('.navbar-nav a.nav-link').forEach(link => {
+                link.addEventListener('click', () => {
+                    const navbarCollapse = document.querySelector('.navbar-collapse');
+                    if (navbarCollapse.classList.contains('show')) {
+                        bootstrap.Collapse.getInstance(navbarCollapse).hide();
+                    }
+                });
+            });
         });
     </script>
     {% endif %}

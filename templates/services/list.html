@@ -4,32 +4,30 @@
 <div class="container">
     <h1 class="mb-4">Available Services</h1>
     
-    <div class="row mb-4">
-        <div class="col">
-            <div class="btn-group" role="group">
-                <a href="{{ url_for('services') }}" class="btn btn-outline-primary {% if not request.args.get('category') %}active{% endif %}">All</a>
-                <a href="{{ url_for('services', category='cleaning') }}" class="btn btn-outline-primary {% if request.args.get('category') == 'cleaning' %}active{% endif %}">Cleaning</a>
-                <a href="{{ url_for('services', category='handyman') }}" class="btn btn-outline-primary {% if request.args.get('category') == 'handyman' %}active{% endif %}">Handyman</a>
-                <a href="{{ url_for('services', category='moving') }}" class="btn btn-outline-primary {% if request.args.get('category') == 'moving' %}active{% endif %}">Moving</a>
-                <a href="{{ url_for('services', category='gardening') }}" class="btn btn-outline-primary {% if request.args.get('category') == 'gardening' %}active{% endif %}">Gardening</a>
-                <a href="{{ url_for('services', category='other') }}" class="btn btn-outline-primary {% if request.args.get('category') == 'other' %}active{% endif %}">Other</a>
-            </div>
+    <div class="filter-scroll mb-4">
+        <div class="btn-group" role="group">
+            <a href="{{ url_for('services') }}" class="btn btn-outline-primary {% if not request.args.get('category') %}active{% endif %}">All</a>
+            <a href="{{ url_for('services', category='cleaning') }}" class="btn btn-outline-primary {% if request.args.get('category') == 'cleaning' %}active{% endif %}">Cleaning</a>
+            <a href="{{ url_for('services', category='handyman') }}" class="btn btn-outline-primary {% if request.args.get('category') == 'handyman' %}active{% endif %}">Handyman</a>
+            <a href="{{ url_for('services', category='moving') }}" class="btn btn-outline-primary {% if request.args.get('category') == 'moving' %}active{% endif %}">Moving</a>
+            <a href="{{ url_for('services', category='gardening') }}" class="btn btn-outline-primary {% if request.args.get('category') == 'gardening' %}active{% endif %}">Gardening</a>
+            <a href="{{ url_for('services', category='other') }}" class="btn btn-outline-primary {% if request.args.get('category') == 'other' %}active{% endif %}">Other</a>
         </div>
     </div>
 
-    <div class="row row-cols-1 row-cols-md-3 g-4">
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-4">
         {% for service in services %}
         <div class="col">
             <a href="{{ url_for('service_detail', id=service.id) }}" class="card-link">
                 <div class="card h-100">
                     <div class="card-body">
-                        <h5 class="card-title">{{ service.title }}</h5>
-                        <h6 class="card-subtitle mb-2 text-muted">${{ "%.2f"|format(service.rate) }}/hr</h6>
-                        <p class="card-text">{{ service.description[:150] }}...</p>
-                        <div class="d-flex justify-content-between align-items-center">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h5 class="card-title mb-0">{{ service.title }}</h5>
                             <span class="badge bg-primary">{{ service.category }}</span>
-                            <button class="btn btn-sm btn-outline-primary view-details-btn">View Details</button>
                         </div>
+                        <h6 class="card-subtitle mb-2 text-muted">${{ "%.2f"|format(service.rate) }}/hr</h6>
+                        <p class="card-text">{{ service.description[:100] }}...</p>
+                        <button class="btn btn-sm btn-outline-primary w-100 mt-2">View Details</button>
                     </div>
                 </div>
             </a>
@@ -42,13 +40,49 @@
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Prevent the view details button from triggering the card click
-    document.querySelectorAll('.view-details-btn').forEach(button => {
-        button.addEventListener('click', function(e) {
-            e.preventDefault();
-            window.location.href = this.closest('.card-link').href;
-        });
+    // Make filter buttons touch-friendly on mobile
+    const filterScroll = document.querySelector('.filter-scroll');
+    let isScrolling = false;
+    
+    filterScroll.addEventListener('touchstart', () => {
+        isScrolling = false;
     });
+    
+    filterScroll.addEventListener('touchmove', () => {
+        isScrolling = true;
+    });
+    
+    filterScroll.addEventListener('touchend', (e) => {
+        if (!isScrolling) {
+            const button = e.target.closest('.btn');
+            if (button) {
+                window.location.href = button.href;
+            }
+        }
+    });
+    
+    // Add swipe gesture for category navigation
+    let touchstartX = 0;
+    let touchendX = 0;
+    
+    filterScroll.addEventListener('touchstart', e => {
+        touchstartX = e.changedTouches[0].screenX;
+    });
+    
+    filterScroll.addEventListener('touchend', e => {
+        touchendX = e.changedTouches[0].screenX;
+        handleSwipe();
+    });
+    
+    function handleSwipe() {
+        const SWIPE_THRESHOLD = 50;
+        if (Math.abs(touchendX - touchstartX) > SWIPE_THRESHOLD) {
+            filterScroll.scrollBy({
+                left: touchstartX > touchendX ? 100 : -100,
+                behavior: 'smooth'
+            });
+        }
+    }
 });
 </script>
 {% endblock %}

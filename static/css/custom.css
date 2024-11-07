@@ -25,18 +25,21 @@ h1, h2, h3, h4, h5, h6 {
     font-weight: 600;
 }
 
-.text-muted {
-    color: var(--stripe-secondary-text) !important;
-}
-
-a {
-    color: var(--stripe-primary);
-    text-decoration: none;
-}
-
-a:hover {
-    color: var(--stripe-primary-hover);
-    text-decoration: none;
+/* Mobile-optimized text sizes */
+@media (max-width: 768px) {
+    h1 {
+        font-size: 1.75rem;
+    }
+    h2 {
+        font-size: 1.5rem;
+    }
+    h3 {
+        font-size: 1.25rem;
+    }
+    .container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
 }
 
 /* Card styles */
@@ -47,11 +50,6 @@ a:hover {
     height: 100%;
 }
 
-.card-link:hover {
-    text-decoration: none;
-    color: inherit;
-}
-
 .card {
     background-color: var(--stripe-card-background);
     border: 1px solid var(--stripe-border);
@@ -59,32 +57,98 @@ a:hover {
     box-shadow: 0 2px 4px rgba(26, 31, 54, 0.05);
     transition: all 0.2s ease;
     height: 100%;
-    cursor: pointer;
 }
 
-.card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(26, 31, 54, 0.1);
+/* Mobile touch-friendly cards */
+@media (max-width: 768px) {
+    .card {
+        margin-bottom: 1rem;
+    }
+    .card-body {
+        padding: 1rem;
+    }
+    .card:active {
+        transform: scale(0.98);
+    }
 }
 
-.card-body {
-    padding: 1.75rem;
+/* Mobile-optimized service filters */
+.filter-scroll {
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    padding: 0.5rem 0;
+    margin: 0 -1rem;
 }
 
-.card-title {
-    color: var(--stripe-text);
-    font-weight: 600;
-    margin-bottom: 0.5rem;
+.filter-scroll .btn-group {
+    padding: 0 1rem;
 }
 
-.card-subtitle {
-    color: var(--stripe-secondary-text);
-    margin-bottom: 1rem;
+.filter-scroll .btn {
+    min-width: auto;
+    padding: 0.5rem 1rem;
 }
 
-.card-text {
-    color: var(--stripe-text);
-    margin-bottom: 1.5rem;
+/* Mobile-optimized forms */
+@media (max-width: 768px) {
+    .form-control, .form-select {
+        font-size: 16px; /* Prevents zoom on iOS */
+        padding: 0.75rem;
+    }
+    
+    .btn {
+        padding: 0.75rem 1rem;
+        width: 100%;
+    }
+    
+    .input-group {
+        flex-direction: column;
+    }
+    
+    .input-group > * {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
 }
 
-/* Rest of the existing CSS styles... */
+/* Mobile-optimized notification dropdown */
+@media (max-width: 768px) {
+    .notification-dropdown {
+        position: fixed !important;
+        top: auto !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        width: 100% !important;
+        max-height: 80vh;
+        border-radius: 1rem 1rem 0 0;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .notification-list {
+        max-height: 60vh;
+        overflow-y: auto;
+    }
+}
+
+/* Mobile-optimized navigation */
+@media (max-width: 768px) {
+    .navbar-collapse {
+        background: var(--bs-dark);
+        padding: 1rem;
+        border-radius: 0.5rem;
+        margin-top: 0.5rem;
+    }
+    
+    .nav-item {
+        padding: 0.5rem 0;
+    }
+}
+
+/* Improved touch targets */
+@media (max-width: 768px) {
+    .nav-link, .btn, .form-control {
+        min-height: 44px; /* iOS minimum touch target size */
+    }
+}
